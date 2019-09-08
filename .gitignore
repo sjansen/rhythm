@@ -1,11 +1,19 @@
 # Directories
 /.idea/
 /.vscode/
+.terraform/
+elm-stuff/
 node_modules/
 
 # Files
-/local.env
-/TODO
 .DS_Store
+TODO
+local.env
 npm-debug.log
 yarn-error.log
+
+# Patterns
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.*

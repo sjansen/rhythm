@@ -32,6 +32,30 @@ EOF
 }
 
 
+resource "aws_iam_policy" "fn-sessions" {
+  name   = "${var.fn}-sessions"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+       "Effect": "Allow",
+       "Action": [
+         "dynamodb:BatchGetItem",
+         "dynamodb:BatchWriteItem",
+         "dynamodb:GetItem",
+         "dynamodb:PutItem",
+         "dynamodb:Query",
+         "dynamodb:UpdateItem"
+       ],
+       "Resource": "${aws_dynamodb_table.sessions.arn}"
+    }
+  ]
+}
+EOF
+}
+
+
 resource "aws_iam_policy" "fn-ssm" {
   name = "${var.fn}-ssm"
   path = "/"
@@ -56,8 +80,8 @@ EOF
 
 
 resource "aws_iam_policy" "fn-xray" {
-    name = "${var.fn}-xray"
-    policy = <<EOF
+  name   = "${var.fn}-xray"
+  policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": {
@@ -97,17 +121,23 @@ EOF
 
 resource "aws_iam_role_policy_attachment" "fn-logs" {
   policy_arn = aws_iam_policy.fn-logs.arn
-  role = aws_iam_role.fn.name
+  role       = aws_iam_role.fn.name
+}
+
+
+resource "aws_iam_role_policy_attachment" "fn-sessions" {
+  policy_arn = aws_iam_policy.fn-sessions.arn
+  role       = aws_iam_role.fn.name
 }
 
 
 resource "aws_iam_role_policy_attachment" "fn-ssm" {
   policy_arn = aws_iam_policy.fn-ssm.arn
-  role = aws_iam_role.fn.name
+  role       = aws_iam_role.fn.name
 }
 
 
 resource "aws_iam_role_policy_attachment" "fn-xray" {
   policy_arn = aws_iam_policy.fn-xray.arn
-  role = aws_iam_role.fn.name
+  role       = aws_iam_role.fn.name
 }

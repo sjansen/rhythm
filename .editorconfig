@@ -11,6 +11,10 @@ max_line_length = 80
 tab_width = 8
 trim_trailing_whitespace = true
 
+[*.go]
+indent_size = 8
+indent_style = tab
+
 [*.md]
 max_line_length = 0
 trim_trailing_whitespace = false

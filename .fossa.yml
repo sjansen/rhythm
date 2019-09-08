@@ -1,0 +1,13 @@
+version: 1
+cli:
+  server: https://app.fossa.io
+  fetcher: custom
+  project: server
+analyze:
+  modules:
+  - name: github.com/sjansen/rhythm/server
+    type: go
+    target: github.com/sjansen/rhythm/server
+    path: .
+    options:
+      all-tags: true

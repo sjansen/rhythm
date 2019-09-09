@@ -4,14 +4,16 @@ repos:
    hooks:
    -  id: vet
       name: go vet
+      directory: server
       language: system
-      entry: go vet -tags integration ./...
+      entry: cd server && go vet -tags integration ./...
       pass_filenames: false
       types: [go]
    -  id: lint
       name: golangci
+      directory: server
       language: system
-      entry: golangci-lint run
+      entry: cd server && golangci-lint run
       pass_filenames: false
       types: [go]
    -  id: revive

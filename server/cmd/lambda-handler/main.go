@@ -13,15 +13,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-xray-sdk-go/xray"
 
+	"github.com/go-chi/chi"
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/sjansen/rhythm/server/internal/api"
+	"github.com/sjansen/rhythm/server/internal/apigw"
 )
 
 type App struct {
-	api  api.Config
-	env  EnvConfig
-	sess *session.Session
+	env    EnvConfig
+	router *chi.Mux
+	sess   *session.Session
 }
 
 type EnvConfig struct {
@@ -53,30 +55,52 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = app.readSecrets()
+	cfg := &api.Config{}
+	err = app.readSecrets(cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
+	app.router = chi.NewRouter()
+	app.router.Mount("/api", api.New(cfg))
 	lambda.Start(app.handleRequest)
 }
 
 func (app *App) handleRequest(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	*events.APIGatewayProxyResponse, error,
 ) {
-	resp := &events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Headers: map[string]string{
-			"Cache-Control": "no-cache, no-store, must-revalidate",
-			"Content-Type":  "text/text; charset=utf-8",
-		},
-		Body: app.api.Secret,
+	r, err := apigw.EventToRequestWithContext(ctx, req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		resp := &events.APIGatewayProxyResponse{
+			StatusCode: http.StatusBadRequest,
+			Headers: map[string]string{
+				"Cache-Control": "no-cache, no-store, must-revalidate",
+			},
+		}
+		return resp, nil
 	}
+
+	w := apigw.NewResponseWriter()
+	app.router.ServeHTTP(w, r)
+
+	resp, err := w.GetResponse()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		resp := &events.APIGatewayProxyResponse{
+			StatusCode: http.StatusInternalServerError,
+			Headers: map[string]string{
+				"Cache-Control": "no-cache, no-store, must-revalidate",
+			},
+		}
+		return resp, nil
+	}
+
 	return resp, nil
 }
 
-func (app *App) readSecrets() error {
+func (app *App) readSecrets(cfg *api.Config) error {
 	svc := ssm.New(app.sess)
 	resp, err := svc.GetParameters(&ssm.GetParametersInput{
 		Names: []*string{
@@ -91,7 +115,7 @@ func (app *App) readSecrets() error {
 	for _, param := range resp.Parameters {
 		switch *param.Name {
 		case app.env.SecretName:
-			app.api.Secret = *param.Value
+			cfg.Secret = *param.Value
 		}
 	}
 	return nil
